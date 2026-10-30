@@ -4,9 +4,11 @@
 
 ## 项目列表
 
-| 项目 | 技术栈 | 描述 |
+| 项目 | 技术方向 | 说明 |
 |---|---|---|
-| cxnp-backend | Java / Spring Boot / MyBatis / MySQL | 后端接口与数据库实践 |
+| cxnp-backend | Java / Spring Boot / MyBatis / MySQL | 后端开发与数据库实践 |
+| smart-hospital-IoT | 智慧医院 / IoT | 智慧医院物联网系统实践 |
+
 
 ## 项目说明
 
