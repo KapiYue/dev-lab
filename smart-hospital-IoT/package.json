@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "axios": "^1.21.0",
+    "express": "^5.3.0",
+    "inversify": "^8.2.3",
+    "mqtt": "^5.16.1",
+    "reflect-metadata": "^0.2.2"
+  }
+}

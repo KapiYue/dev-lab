@@ -1,0 +1,41 @@
+services:
+  java-his-server:
+    build:
+      context: ./mock-his
+    container_name: smart-hospital-java-his-server
+    ports:
+      - "8080:8080"
+    networks:
+      - hospital-network
+
+  vendor-api:
+    build: ./mock-vendor
+    container_name: smart-hospital-vendor-api
+    ports:
+      - "9000:9000"
+    networks:
+      - hospital-network
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: smart-hospital-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mock-mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - hospital-network
+
+  mqtt-mock-publisher:
+    build: ./mock-mqtt
+    container_name: smart-hospital-mqtt-mock-publisher
+    depends_on:
+      - mqtt
+    environment:
+      MQTT_URL: mqtt://mqtt:1883
+    networks:
+      - hospital-network
+
+networks:
+  hospital-network:
+    driver: bridge
