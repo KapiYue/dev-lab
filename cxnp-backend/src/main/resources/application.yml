@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: cxnp-backend
+  profiles:
+    default: dev
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.qingmou.cxnp
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8080
+

@@ -1,0 +1,19 @@
+# Build output
+target/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Local and deployment-only configuration
+# Do not commit database credentials, production endpoints, certificates,
+# exported environment files, or other operational secrets.
+internal/
+*.env
+*.env.*
+!.env.example
+
+# Local logs
+*.log
+
