@@ -1,6 +1,6 @@
 # cxnp-backend 项目运维手册
 
-技术环境：macOS + Docker + MySQL 8.0 + Spring Boot + DataGrip
+技术环境：macOS + Docker + MySQL 8.0 + Redis 7.4 + Spring Boot + DataGrip
 
 ## 一、首次启动（只需要配置一次）
 
@@ -54,15 +54,130 @@ IDEA → Run → Edit Configurations → Environment variables：
 DB_PASSWORD=数据库密码
 ```
 
-### 4. 启动并验证
+### 4. 配置 Redis
 
-- DataGrip：连接 `127.0.0.1:3306`，数据库 `cxnp`
-- IDEA：运行 `CxnpApplication`
-- 终端：验证接口
+**第一步：拉取 Redis 镜像**
+
+```bash
+docker pull redis:7.4
+```
+
+**第二步：创建 Redis 容器（仅首次执行）**
+
+```bash
+docker run -d \
+  --name cxnp-redis \
+  -p 127.0.0.1:6379:6379 \
+  -v cxnp-redis-data:/data \
+  --restart unless-stopped \
+  redis:7.4 \
+  redis-server --appendonly yes
+```
+
+说明：
+
+- 容器名称：`cxnp-redis`
+- Redis 默认端口：`6379`
+- 使用 Docker Volume 保存 Redis 数据。
+- 开启 AOF 持久化。
+- 仅允许本机访问，适用于本地学习环境。
+
+**第三步：验证 Redis**
+
+```bash
+docker exec -it cxnp-redis redis-cli
+```
+
+进入 Redis 后：
+
+```redis
+PING
+SET username "zhangsan"
+GET username
+DEL username
+```
+
+`PING` 返回 `PONG`，表示服务正常。
+
+输入 `exit` 退出 Redis 命令行。
+
+**第四步：配置 Spring Boot**
+
+在 `pom.xml` 的 `<dependencies>` 中增加：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+IDEA 重新加载 Maven 项目。
+
+在 `application.yml` 原有 `spring` 节点下增加 Redis 配置，不要覆盖已有的 MySQL 配置：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cxnp
+    username: root
+    password: ${DB_PASSWORD}
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 3000ms
+```
+
+注意：这只是完成 Redis 连接配置，业务代码仍需要通过 `RedisTemplate` 等组件实际读写 Redis。
+
+### 5. 启动并验证
+
+**检查 Docker 容器：**
+
+```bash
+docker ps
+```
+
+确认以下两个容器正在运行：
+
+```text
+cxnp-mysql
+cxnp-redis
+```
+
+**验证 MySQL：**
+
+- DataGrip：连接 `127.0.0.1:3306`
+- 数据库：`cxnp`
+
+**验证 Redis：**
+
+```bash
+docker exec cxnp-redis redis-cli PING
+```
+
+预期返回：
+
+```text
+PONG
+```
+
+**验证 Spring Boot：**
+
+IDEA 运行 `CxnpApplication`。
+
+终端执行：
 
 ```bash
 curl http://localhost:8080/api/users
 ```
+
+接口正常返回用户数据，说明已有后端查询链路正常。
+
+注意：`/api/users` 仅验证当前 MySQL 查询接口，不代表 Redis 业务读写已经验证。
 
 ---
 
@@ -70,21 +185,33 @@ curl http://localhost:8080/api/users
 
 **第一步：** 打开 Docker Desktop。
 
-**第二步：** 启动数据库。
+**第二步：** 启动 MySQL 和 Redis。
 
 ```bash
 docker start cxnp-mysql
+docker start cxnp-redis
 ```
 
-**第三步：** IDEA 运行 `CxnpApplication`。
+如果容器已经运行，无须重复启动。
 
-**第四步：** 验证后端接口。
+**第三步：** 检查服务状态。
+
+```bash
+docker ps
+docker exec cxnp-redis redis-cli PING
+```
+
+确认 MySQL 和 Redis 正常运行。
+
+**第四步：** IDEA 运行 `CxnpApplication`。
+
+**第五步：** 验证后端接口。
 
 ```bash
 curl http://localhost:8080/api/users
 ```
 
-DataGrip 只在需要查看或修改数据库时打开。
+DataGrip 只在需要查看或修改 MySQL 数据库时打开。
 
 ---
 
@@ -93,8 +220,11 @@ DataGrip 只在需要查看或修改数据库时打开。
 ```bash
 # 1. IDEA 点击 Stop，停止 Spring Boot
 
-# 2. 按需停止数据库
+# 2. 按需停止 MySQL
 docker stop cxnp-mysql
+
+# 3. 按需停止 Redis
+docker stop cxnp-redis
 ```
 
 ---
@@ -103,21 +233,28 @@ docker stop cxnp-mysql
 
 | 问题 | 解决方法 |
 |---|---|
-| 3306 端口被占用 | 检查占用进程，若为本机 Oracle MySQL，执行 `sudo launchctl bootout system/com.oracle.oss.mysql.mysqld` |
+| 3306 端口被占用 | 检查本机 Oracle MySQL，必要时执行 `sudo launchctl bootout system/com.oracle.oss.mysql.mysqld` |
+| 6379 端口被占用 | `lsof -nP -iTCP:6379 -sTCP:LISTEN` |
 | Docker 无法连接 | 打开 Docker Desktop |
 | MySQL 没启动 | `docker start cxnp-mysql` |
-| 查看数据库日志 | `docker logs --tail 50 cxnp-mysql` |
+| Redis 没启动 | `docker start cxnp-redis` |
+| 查看 MySQL 日志 | `docker logs --tail 50 cxnp-mysql` |
+| 查看 Redis 日志 | `docker logs --tail 50 cxnp-redis` |
 | 后端数据库连接失败 | 检查 MySQL 状态及 `DB_PASSWORD` |
+| Redis 连接失败 | 检查 Redis 容器、6379 端口及 `application.yml` |
 | 8080 端口被占用 | `lsof -nP -iTCP:8080 -sTCP:LISTEN` |
 
 ---
 
 ## 五、注意事项
 
-1. 本地开发统一使用 Docker MySQL。
+1. 本地开发统一使用 Docker MySQL 和 Docker Redis。
 2. 不要每天重新创建容器或数据库。
-3. `docker stop` 不会删除数据库数据。
-4. 本地 Docker MySQL 与腾讯云 MySQL 是独立环境，操作前确认连接目标。
-5. 不要随意删除 MySQL 容器和数据卷。
+3. `docker stop` 不会删除 MySQL 或 Redis 的持久化数据。
+4. MySQL 使用 `3306` 端口，Redis 使用 `6379` 端口。
+5. 本地 Docker MySQL 与腾讯云 MySQL 是独立环境，操作前确认连接目标。
+6. 不要随意删除 MySQL、Redis 容器和数据卷。
+7. Redis 当前仅供本地学习，不要直接暴露到公网。
+8. Spring Boot 的 `application.yml` 只保留一个顶层 `spring` 节点。
 
-**核心流程：Docker Desktop → MySQL → Spring Boot → API 验证。**
+**核心流程：Docker Desktop → MySQL + Redis → Spring Boot → API 验证。**
