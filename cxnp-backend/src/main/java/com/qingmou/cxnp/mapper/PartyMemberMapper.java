@@ -8,5 +8,9 @@ import java.util.List;
 @Mapper
 public interface PartyMemberMapper {
 
+        // 查询所有
     List<PartyMember> selectAll();
+
+    // id查询
+    PartyMember selectById(Long id);
 }

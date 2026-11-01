@@ -22,4 +22,9 @@ public class PartyMemberServiceImpl implements PartyMemberService {
     public List<PartyMember> getAllPartyMembers(){
         return partyMemberMapper.selectAll();
     }
+
+    @Override
+    public PartyMember getPartyMemberById(Long id) {
+        return partyMemberMapper.selectById(id);
+    }
 }
