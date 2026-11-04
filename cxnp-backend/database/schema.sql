@@ -19,5 +19,65 @@ CREATE TABLE IF NOT EXISTS sys_user (
     );
 
 
+-- 1. 角色表
+CREATE TABLE IF NOT EXISTS sys_role (
+                                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                        role_code VARCHAR(100) NOT NULL,
+    role_name VARCHAR(100) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_role_code (role_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. 功能权限表
+CREATE TABLE IF NOT EXISTS sys_permission (
+                                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                              permission_code VARCHAR(100) NOT NULL,
+    permission_name VARCHAR(100) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_permission_code (permission_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. 用户角色关联表
+/**
+  UNIQUE KEY uk_user_role(user_id, role_id)联合检索，两字段组合不能重复
+  MySQL 创建联合唯一索引的语法
+ */
+CREATE TABLE IF NOT EXISTS sys_user_role (
+                                             id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                             user_id BIGINT NOT NULL,
+                                             role_id BIGINT NOT NULL,
+    -- 1 防止重复绑定
+    UNIQUE KEY uk_user_role (user_id, role_id),
+    -- 2 优化按角色查询用户的速度，SQL 内部扫描而不是数据库发送多次请求，验证办法
+    -- EXPLAIN
+    -- SELECT user_id
+    -- FROM sys_user_role
+    -- WHERE role_id = 1;
+    -- 重点查看返回的，type查询访问方式，通常为 ref；key使用的索引，rows 预计需要检查的记录数，比全表少
+
+    KEY idx_role_id (role_id),
+    -- 3 保证用户真实存在
+    CONSTRAINT fk_user_role_user FOREIGN KEY (user_id) REFERENCES sys_user(id),
+    -- 4 保证角色真实存在
+    CONSTRAINT fk_user_role_role FOREIGN KEY (role_id) REFERENCES sys_role(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. 角色权限关联表
+CREATE TABLE IF NOT EXISTS sys_role_permission (
+                                                   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                                   role_id BIGINT NOT NULL,
+                                                   permission_id BIGINT NOT NULL,
+    --  防止重复绑定
+    UNIQUE KEY uk_role_permission (role_id, permission_id),
+--     优化权限查找速度
+    KEY idx_permission_id (permission_id),
+    CONSTRAINT fk_role_permission_role
+    FOREIGN KEY (role_id) REFERENCES sys_role(id),
+    CONSTRAINT fk_role_permission_permission
+    FOREIGN KEY (permission_id) REFERENCES sys_permission(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 
 

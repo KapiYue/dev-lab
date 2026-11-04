@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.qingmou.cxnp.mapper.SysPermissionMapper">
+
+    <!-- 1. 查询所有功能权限 -->
+    <select id="selectAll"
+            resultType="com.qingmou.cxnp.entity.SysPermission">
+        SELECT
+        id,
+        permission_code,
+        permission_name,
+        created_at
+        FROM sys_permission
+    </select>
+
+    <!-- 2. 根据权限编码查询 -->
+    <select id="selectByPermissionCode"
+            resultType="com.qingmou.cxnp.entity.SysPermission">
+        SELECT
+        id,
+        permission_code,
+        permission_name,
+        created_at
+        FROM sys_permission
+        WHERE permission_code = #{permissionCode}
+    </select>
+
+    <!-- 3. 根据用户 ID 查询全部功能权限-->
+<!--
+SELECT DISTINCT是去重权限；
+
+RBAC关系顺序如下：
+业务逻辑：用户 → 用户角色 → 角色 → 角色权限 → 功能权限
+这里mysql逻辑，JOIN方向，权限 用户角色 角色；
+FROM sys_permission p：以功能权限表作为 SQL 编写的起点。
+JOIN sys_role_permission：找到权限和角色的绑定关系。
+JOIN sys_user_role：找到角色和用户的绑定关系。
+JOIN sys_role：检查角色是否启用。
+WHERE ur.user_id：筛选指定用户。
+SELECT p.* 对应的四个字段：最终返回功能权限信息。
+-->
+    <select id="selectByUserId"
+            resultType="com.qingmou.cxnp.entity.SysPermission">
+        SELECT DISTINCT
+        p.id,
+        p.permission_code,
+        p.permission_name,
+        p.created_at
+        FROM sys_permission p
+        INNER JOIN sys_role_permission rp
+        ON p.id = rp.permission_id
+        INNER JOIN sys_user_role ur
+        ON rp.role_id = ur.role_id
+        INNER JOIN sys_role r
+        ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+        AND r.status = 1
+    </select>
+
+</mapper>

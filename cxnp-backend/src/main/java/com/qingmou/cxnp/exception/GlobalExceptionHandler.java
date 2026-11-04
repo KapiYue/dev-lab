@@ -44,5 +44,19 @@ public class GlobalExceptionHandler {
                 .body(Result.error(400, message));
     }
 
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Result<Void>> handleSecurityException(
+            SecurityException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(Result.<Void>error(
+                        403,
+                        "无功能权限"
+                ));
+    }
+
+
 }
 
