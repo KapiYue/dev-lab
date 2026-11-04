@@ -1,11 +1,10 @@
-
 package com.qingmou.cxnp.controller;
 
+import com.qingmou.cxnp.annotation.RequirePermission;
 import com.qingmou.cxnp.common.Result;
 import com.qingmou.cxnp.constant.PermissionConstants;
 import com.qingmou.cxnp.entity.PartyMember;
 import com.qingmou.cxnp.service.PartyMemberService;
-import com.qingmou.cxnp.service.PermissionService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,50 +17,39 @@ import java.util.List;
 public class PartyMemberController {
 
     private final PartyMemberService partyMemberService;
-    private final PermissionService permissionService;
 
     public PartyMemberController(
-            PartyMemberService partyMemberService,
-            PermissionService permissionService
+            PartyMemberService partyMemberService
     ) {
         this.partyMemberService = partyMemberService;
-        this.permissionService = permissionService;
     }
 
     // 查询党员列表
+    @RequirePermission(PermissionConstants.PARTY_MEMBER_LIST)
     @GetMapping
     public Result<List<PartyMember>> list() {
 
-        // 第一层：Controller 权限校验
-        permissionService.checkCurrentUserPermission(
-                PermissionConstants.PARTY_MEMBER_LIST
-        );
-
-        // 第二层：Service 内部再次校验
+        // Service 内部仍然会进行二次权限校验
         return Result.success(
                 partyMemberService.getAllPartyMembers()
         );
     }
 
     // 根据 ID 查询党员详情
+    @RequirePermission(PermissionConstants.PARTY_MEMBER_DETAIL)
     @GetMapping("/{id}")
     public ResponseEntity<Result<PartyMember>> detail(
             @PathVariable Long id
     ) {
 
-        // 第一层：Controller 权限校验
-        permissionService.checkCurrentUserPermission(
-                PermissionConstants.PARTY_MEMBER_DETAIL
-        );
-
-        // ID 参数校验
+        // 参数校验
         if (id <= 0) {
             return ResponseEntity
                     .badRequest()
                     .body(Result.error(400, "ID 必须大于 0"));
         }
 
-        // 第二层：Service 内部再次校验
+        // Service 内部进行二次权限校验
         PartyMember member =
                 partyMemberService.getPartyMemberById(id);
 

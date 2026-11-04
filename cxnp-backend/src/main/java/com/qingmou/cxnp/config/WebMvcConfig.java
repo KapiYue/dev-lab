@@ -6,6 +6,7 @@ package com.qingmou.cxnp.config;
 
 import com.qingmou.cxnp.context.UserContext;
 import com.qingmou.cxnp.interceptor.LoginInterceptor;
+import com.qingmou.cxnp.interceptor.PermissionInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -15,9 +16,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
+    private final PermissionInterceptor permissionInterceptor;
 
-    public WebMvcConfig(LoginInterceptor loginInterceptor){
+    public WebMvcConfig(
+            LoginInterceptor loginInterceptor,
+            PermissionInterceptor permissionInterceptor
+    ){
         this.loginInterceptor = loginInterceptor;
+        this.permissionInterceptor = permissionInterceptor;
     }
 
     @Override
@@ -25,7 +31,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
     // 将自己写的拦截器添加到mvc拦截链中
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login");
+                .excludePathPatterns("/api/auth/login")
+                .order(1);
+
+        registry.addInterceptor(permissionInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/auth/login")
+                .order(2);
     }
 }
 
