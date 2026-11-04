@@ -1,6 +1,8 @@
+
 package com.qingmou.cxnp.exception;
 
 import com.qingmou.cxnp.common.Result;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -10,29 +12,26 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // 1. URL 参数类型错误：HTTP 400
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Result<Object>> handleTypeMismatch(
-            MethodArgumentTypeMismatchException e){
-
-            return ResponseEntity
-                    .badRequest()
-                    .body(Result.error(400, "ID 格式参数错误"));
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Result<Void>> handleAuthenticationException(
-            AuthenticationException e) {
-
+    public ResponseEntity<Result<Void>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex
+    ) {
         return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(Result.error(401, e.getMessage()));
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Result.<Void>error(
+                        400,
+                        "ID 格式参数错误"
+                ));
     }
 
+    // 2. 请求参数校验失败：HTTP 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Result<Void>> handleValidationException(
-            MethodArgumentNotValidException e) {
-
-        String message = e.getBindingResult()
+            MethodArgumentNotValidException ex
+    ) {
+        String message = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(error -> error.getDefaultMessage())
@@ -41,13 +40,29 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Result.error(400, message));
+                .body(Result.<Void>error(
+                        400,
+                        message
+                ));
     }
 
+    // 3. 登录认证异常：HTTP 401
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Result<Void>> handleAuthenticationException(
+            AuthenticationException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(Result.<Void>error(
+                        401,
+                        ex.getMessage()
+                ));
+    }
 
-    @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<Result<Void>> handleSecurityException(
-            SecurityException ex
+    // 4. 功能权限不足：HTTP 403
+    @ExceptionHandler(PermissionDeniedException.class)
+    public ResponseEntity<Result<Void>> handlePermissionDeniedException(
+            PermissionDeniedException ex
     ) {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
@@ -56,7 +71,4 @@ public class GlobalExceptionHandler {
                         "无功能权限"
                 ));
     }
-
-
 }
-

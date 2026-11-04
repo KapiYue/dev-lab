@@ -6,6 +6,8 @@ import com.qingmou.cxnp.mapper.SysPermissionMapper;
 import com.qingmou.cxnp.service.PermissionService;
 import org.springframework.stereotype.Service;
 import com.qingmou.cxnp.context.UserContext;
+import com.qingmou.cxnp.exception.PermissionDeniedException;
+import com.qingmou.cxnp.exception.AuthenticationException;
 
 import java.util.List;
 
@@ -36,7 +38,9 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public void checkPermission(Long userId, String permissionCode) {
         if (!hasPermission(userId, permissionCode)) {
-            throw new SecurityException("无功能权限：" + permissionCode);
+            throw new PermissionDeniedException(
+                    "无功能权限：" + permissionCode
+            );
         }
     }
 
@@ -48,7 +52,7 @@ public class PermissionServiceImpl implements PermissionService {
 
         // 未登录时禁止继续查询
         if (userId == null) {
-            throw new SecurityException("用户未登录");
+            throw new AuthenticationException("用户未登录");
         }
 
         // 查询当前登录用户拥有的功能权限
@@ -64,7 +68,7 @@ public class PermissionServiceImpl implements PermissionService {
 
         // 未登录直接拒绝
         if (userId == null) {
-            throw new SecurityException("用户未登录");
+            throw new AuthenticationException("用户未登录");
         }
 
         // 复用已有的权限校验方法

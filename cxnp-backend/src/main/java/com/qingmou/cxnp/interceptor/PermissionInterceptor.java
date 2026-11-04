@@ -70,3 +70,33 @@ public class PermissionInterceptor implements HandlerInterceptor {
         return true;
     }
 }
+/**
+  ① 前端发起请求
+  GET /api/party-members + Bearer Token
+
+ ② Spring MVC 匹配目标 Controller 方法
+ MvcConfig 已注册拦截器规则
+
+ ③ LoginInterceptor
+ 读取 Token → Redis 校验 → 设置 UserContext
+
+ ④ PermissionInterceptor
+ preHandle() 获取 HandlerMethod
+ 读取 @RequirePermission("party:member:list")
+
+ ⑤ PermissionService
+ checkCurrentUserPermission(permissionCode)
+ 通过 RBAC 关系查询当前用户权限
+
+ ⑥ 校验通过，preHandle() 返回 true
+
+ ⑦ PartyMemberController.list()
+
+ ⑧ PartyMemberServiceImpl
+
+ ⑨ PartyMemberMapper → MyBatis XML → MySQL
+
+ ⑩ 返回统一 Result JSON 给前端
+ 结果经 Mapper → Service → Controller 返回
+
+ */
