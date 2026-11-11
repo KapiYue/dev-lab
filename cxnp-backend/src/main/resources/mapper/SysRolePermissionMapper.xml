@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.qingmou.cxnp.mapper.SysRolePermissionMapper">
+
+    <!-- 检查角色与权限是否已经绑定 -->
+    <select id="countByRoleIdAndPermissionId" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_role_permission
+        WHERE role_id = #{roleId}
+        AND permission_id = #{permissionId}
+    </select>
+
+    <!-- 新增角色与权限绑定 -->
+    <insert id="insert">
+        INSERT INTO sys_role_permission (role_id, permission_id)
+        VALUES (#{roleId}, #{permissionId})
+    </insert>
+
+</mapper>
