@@ -1,4 +1,3 @@
-
 package com.qingmou.cxnp.exception;
 
 import com.qingmou.cxnp.common.Result;

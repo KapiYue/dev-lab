@@ -1,4 +1,3 @@
-
 package com.qingmou.cxnp.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +18,9 @@ public class LoginInterceptor implements HandlerInterceptor {
     private final TokenService tokenService;
     private final ObjectMapper objectMapper;
 
-    public LoginInterceptor(TokenService tokenService,
-    ObjectMapper objectMapper
+    public LoginInterceptor(
+            TokenService tokenService,
+            ObjectMapper objectMapper
     ) {
         this.tokenService = tokenService;
         this.objectMapper = objectMapper;
@@ -31,62 +31,58 @@ public class LoginInterceptor implements HandlerInterceptor {
             HttpServletRequest request,
             HttpServletResponse response,
             Object handler
-
     ) throws IOException {
-        // 防止复用线程时残留上一次请求的用户信息
+
+        // 1. 清理线程可能残留的用户信息
         UserContext.clear();
 
-        // 1. 获取 Authorization 请求头
+        // 2. 获取 Authorization 请求头
         String authorization = request.getHeader("Authorization");
 
         Long userId = null;
 
-        // 2. 提取验证。如果没有 Bearer Token，暂时放行
-        if (authorization != null &&
-                authorization.startsWith("Bearer ")) {
-            // 3. 提取 Token,请求头是Authorization: Bearer abc123
+        // 3. 提取并验证 Bearer Token
+        if (authorization != null
+                && authorization.startsWith("Bearer ")) {
+
             String token = authorization.substring(7).trim();
 
-            if(!token.isEmpty()){
-                // Redis验证
+            if (!token.isEmpty()) {
+                // 通过 TokenService 验证 Redis Token
                 userId = tokenService.verifyToken(token);
             }
         }
 
-    // 4. 验证成功
-        if(userId != null){
-            UserContext.setUserId(userId);
-        }
-    // 5. 判断当前接口是否需要登录
-        String path  = request.getServletPath();
+        // 4. 所有进入当前拦截器的 API 都要求登录
+        // /api/auth/login 已在 WebMvcConfig 中排除
+        if (userId == null) {
 
-        boolean requiresLogin = path.equals("/api/party-members")
-                || path.startsWith("/api/party-members/");
-
-        // 6.需要登录 但当前用户不存在.
-//        if(requiresLogin && userId == null){
-//            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//            return false;
-//        }
-//        6.未登录时统一返回JSON(未登录 + token过期两个)
-        if(requiresLogin && userId == null){
             response.setStatus(
                     HttpServletResponse.SC_UNAUTHORIZED
             );
+
             response.setContentType("application/json");
-            response.setCharacterEncoding(StandardCharsets.UTF_8.name()
+
+            response.setCharacterEncoding(
+                    StandardCharsets.UTF_8.name()
             );
+
             Result<?> result = Result.error(
                     401,
                     "未登录或登录已过期"
             );
+
             response.getWriter().write(
                     objectMapper.writeValueAsString(result)
             );
 
             return false;
         }
-        // 7. 允许继续运行Controller
+
+        // 5. Token 验证通过，设置当前用户 ID
+        UserContext.setUserId(userId);
+
+        // 6. 允许进入权限拦截器和 Controller
         return true;
     }
 
@@ -97,7 +93,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             Object handler,
             Exception ex
     ) {
-        // 请求处理结束后清理 ThreadLocal
+        // 请求处理结束，清理 ThreadLocal
         UserContext.clear();
     }
 }
