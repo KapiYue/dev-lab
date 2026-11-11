@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.qingmou.cxnp.mapper.PostAuthorizationMapper">
+
+    <!-- 查询指定操作下有权限的有效任职 -->
+   
+    <select id="selectAuthorizedPostIds"
+            resultType="java.lang.Long">
+
+        SELECT DISTINCT p.id
+        FROM sys_user_post p
+
+        INNER JOIN sys_user u
+            ON p.user_id = u.id
+        AND u.status = 1
+
+        INNER JOIN sys_project project
+            ON p.project_id = project.id
+
+        INNER JOIN sys_role r
+            ON p.role_id = r.id
+        AND r.status = 1
+
+        INNER JOIN sys_org org
+            ON p.org_id = org.id
+
+        INNER JOIN sys_post_module_access pma
+            ON p.id = pma.post_id
+
+        INNER JOIN sys_business_module bm
+            ON pma.module_id = bm.id
+
+        INNER JOIN sys_module_permission mp
+            ON bm.id = mp.module_id
+
+        INNER JOIN sys_permission perm
+            ON mp.permission_id = perm.id
+
+        INNER JOIN sys_post_permission_grant pg
+            ON pg.post_id = p.id
+        AND pg.permission_id = perm.id
+
+        WHERE p.user_id = #{userId}
+        AND p.project_id = #{projectId}
+        AND bm.module_code = #{moduleCode}
+        AND perm.permission_code = #{permissionCode}
+
+        AND p.status = 1
+        AND project.status = 1
+        AND org.status = 1
+        AND bm.status = 1
+
+        <!-- 所有岗位都必须属于当前项目的有效组织 -->
+        AND EXISTS (
+            SELECT 1
+            FROM sys_project_org po
+            WHERE po.project_id = p.project_id
+                AND po.org_id = p.org_id
+        )
+
+        <!-- 不同岗位类型的额外资格校验 -->
+        AND (
+            p.post_type = 'BASIC'
+
+            OR (
+                p.post_type = 'MANAGEMENT'
+                AND EXISTS (
+                    SELECT 1
+                    FROM sys_user_management_authorization ma
+                    WHERE ma.user_id = p.user_id
+                        AND ma.status = 1
+                )
+            )
+        )
+
+    </select>
+
+    <select id="countPostPermissionGrant" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_post_permission_grant
+        WHERE post_id = #{postId}
+          AND permission_id = #{permissionId}
+    </select>
+
+    <insert id="insertPostPermissionGrant">
+        INSERT INTO sys_post_permission_grant (post_id, permission_id)
+        VALUES (#{postId}, #{permissionId})
+    </insert>
+
+    <insert id="insertPermissionDelegation">
+        INSERT INTO sys_post_permission_delegation (
+            source_post_id,
+            target_post_id,
+            permission_id,
+            status
+        ) VALUES (
+            #{sourcePostId},
+            #{targetPostId},
+            #{permissionId},
+            'ACTIVE'
+        )
+    </insert>
+
+    <update id="revokeActivePermissionDelegation">
+        UPDATE sys_post_permission_delegation
+        SET status = 'REVOKED',
+            revoked_at = CURRENT_TIMESTAMP
+        WHERE source_post_id = #{sourcePostId}
+          AND target_post_id = #{targetPostId}
+          AND permission_id = #{permissionId}
+          AND status = 'ACTIVE'
+    </update>
+
+    <delete id="deletePostPermissionGrant">
+        DELETE FROM sys_post_permission_grant
+        WHERE post_id = #{postId}
+          AND permission_id = #{permissionId}
+    </delete>
+
+
+    <!-- 查询指定任职的数据范围 -->
+    <select id="selectScopeByPostId"
+            resultType="com.qingmou.cxnp.entity.SysPostDataScope">
+
+        SELECT
+            id,
+            post_id,
+            scope_type,
+            created_at,
+            updated_at
+        FROM sys_post_data_scope
+        WHERE post_id = #{postId}
+
+    </select>
+
+    <!-- 查询任职 CUSTOM 数据范围绑定的组织 -->
+    <select id="selectCustomOrgIdsByPostId"
+            resultType="java.lang.Long">
+
+        SELECT o.id
+        FROM sys_post_scope_org pso
+
+        INNER JOIN sys_post_data_scope ds
+            ON pso.post_scope_id = ds.id
+
+        INNER JOIN sys_org o
+            ON pso.org_id = o.id
+
+        WHERE ds.post_id = #{postId}
+          AND ds.scope_type = 'CUSTOM'
+          AND o.status = 1
+
+    </select>
+
+
+    <!-- 查询任职所属组织 -->
+    <select id="selectOrgIdByPostId"
+            resultType="java.lang.Long">
+
+        SELECT p.org_id
+        FROM sys_user_post p
+        INNER JOIN sys_org o
+            ON p.org_id = o.id
+        WHERE p.id = #{postId}
+          AND p.status = 1
+          AND o.status = 1
+
+    </select>
+
+    <!-- 查询当前项目关联的启用组织 -->
+    <select id="selectActiveOrgIdsByProjectId"
+            resultType="java.lang.Long">
+
+        SELECT po.org_id
+        FROM sys_project_org po
+
+        INNER JOIN sys_project p
+            ON po.project_id = p.id
+
+        INNER JOIN sys_org o
+            ON po.org_id = o.id
+
+        WHERE po.project_id = #{projectId}
+          AND p.status = 1
+          AND o.status = 1
+
+    </select>
+
+
+    <!-- 查询当前用户可委派指定功能的管理任职 ID -->
+    <select id="selectDelegablePostIds"
+            resultType="java.lang.Long">
+
+        SELECT DISTINCT p.id
+        FROM sys_user_post p
+
+        INNER JOIN sys_user u
+            ON p.user_id = u.id
+        AND u.status = 1
+
+        INNER JOIN sys_project project
+            ON p.project_id = project.id
+        AND project.status = 1
+
+        INNER JOIN sys_org org
+            ON p.org_id = org.id
+        AND org.status = 1
+
+        INNER JOIN sys_role r
+            ON p.role_id = r.id
+        AND r.status = 1
+
+        INNER JOIN sys_post_module_access pma
+            ON p.id = pma.post_id
+
+        INNER JOIN sys_business_module bm
+            ON pma.module_id = bm.id
+        AND bm.status = 1
+
+        INNER JOIN sys_module_permission mp
+            ON mp.module_id = bm.id
+
+        INNER JOIN sys_permission perm
+            ON mp.permission_id = perm.id
+
+        INNER JOIN sys_post_permission_grant pg
+            ON pg.post_id = p.id
+        AND pg.permission_id = perm.id
+
+        INNER JOIN sys_post_delegable_permission dp
+            ON dp.post_id = p.id
+        AND dp.permission_id = perm.id
+
+        WHERE p.user_id = #{userId}
+        AND p.project_id = #{projectId}
+        AND bm.module_code = #{moduleCode}
+        AND perm.permission_code = #{permissionCode}
+
+        AND p.status = 1
+        AND p.post_type = 'MANAGEMENT'
+
+        <!-- 有效管理岗资格 -->
+        AND EXISTS (
+            SELECT 1
+            FROM sys_user_management_authorization ma
+            WHERE ma.user_id = u.id
+                AND ma.status = 1
+        )
+
+        <!-- 任职组织必须属于当前项目 -->
+        AND EXISTS (
+            SELECT 1
+            FROM sys_project_org po
+            WHERE po.project_id = p.project_id
+                AND po.org_id = p.org_id
+        )
+
+        <!-- 管理任职必须拥有当前模块的权限配置功能 -->
+        AND EXISTS (
+            SELECT 1
+            FROM sys_post_permission_grant configure_grant
+
+            INNER JOIN sys_module_permission configure_mp
+                ON configure_grant.permission_id =
+                    configure_mp.permission_id
+
+            INNER JOIN sys_permission configure_perm
+                ON configure_grant.permission_id =
+                    configure_perm.id
+
+            WHERE configure_grant.post_id = p.id
+                AND configure_mp.module_id = bm.id
+                AND configure_perm.permission_code =
+                    CASE bm.module_code
+                        WHEN 'CONSTRUCTION'
+                        THEN 'construction:permission:configure'
+
+                        WHEN 'SUPERVISION'
+                        THEN 'supervision:permission:configure'
+
+                        ELSE '__UNSUPPORTED_MODULE__'
+                    END
+        )
+
+    </select>
+
+    <select id="selectValidTargetPostId" resultType="java.lang.Long">
+        SELECT
+            p.id
+        FROM sys_user_post p
+        INNER JOIN sys_user u
+            ON p.user_id = u.id
+            AND u.status = 1
+        INNER JOIN sys_project pr
+            ON p.project_id = pr.id
+            AND pr.status = 1
+        INNER JOIN sys_org o
+            ON p.org_id = o.id
+            AND o.status = 1
+        INNER JOIN sys_role r
+            ON p.role_id = r.id
+            AND r.status = 1
+        WHERE p.id = #{targetPostId}
+        AND p.project_id = #{projectId}
+        AND p.status = 1
+        AND EXISTS (
+            SELECT 1
+            FROM sys_project_org po
+            WHERE po.project_id = p.project_id
+                AND po.org_id = p.org_id
+        )
+    </select>
+    <select id="selectValidTargetPostModule"
+        resultType="java.lang.Long">
+    SELECT
+        p.id
+    FROM sys_user_post p
+    INNER JOIN sys_user u
+        ON p.user_id = u.id
+       AND u.status = 1
+    INNER JOIN sys_project pr
+        ON p.project_id = pr.id
+       AND pr.status = 1
+    INNER JOIN sys_role r
+        ON p.role_id = r.id
+       AND r.status = 1
+    INNER JOIN sys_org o
+        ON p.org_id = o.id
+       AND o.status = 1
+    INNER JOIN sys_post_module_access pma
+        ON pma.post_id = p.id
+    INNER JOIN sys_business_module bm
+        ON pma.module_id = bm.id
+       AND bm.status = 1
+    WHERE p.id = #{targetPostId}
+      AND p.project_id = #{projectId}
+      AND p.status = 1
+      AND bm.module_code = #{moduleCode}
+      AND EXISTS (
+          SELECT 1
+          FROM sys_project_org po
+          WHERE po.project_id = p.project_id
+            AND po.org_id = p.org_id
+      )
+    </select>
+
+    <select id="selectValidModulePermissionId"
+            resultType="java.lang.Long">
+        SELECT
+            p.id
+        FROM sys_module_permission mp
+        INNER JOIN sys_business_module bm
+            ON mp.module_id = bm.id
+        AND bm.status = 1
+        INNER JOIN sys_permission p
+            ON mp.permission_id = p.id
+        WHERE bm.module_code = #{moduleCode}
+        AND p.permission_code = #{permissionCode}
+        LIMIT 1
+    </select>
+
+
+    <!-- 查询当前用户有权访问的有效项目 ID -->
+    <select id="selectAuthorizedProjectIds"
+            resultType="java.lang.Long">
+
+        SELECT DISTINCT p.project_id
+        FROM sys_user_post p
+
+        INNER JOIN sys_user u
+            ON p.user_id = u.id
+
+        INNER JOIN sys_project pr
+            ON p.project_id = pr.id
+
+        INNER JOIN sys_org o
+            ON p.org_id = o.id
+
+        INNER JOIN sys_role r
+            ON p.role_id = r.id
+
+        WHERE p.user_id = #{userId}
+        AND p.status = 1
+        AND u.status = 1
+        AND pr.status = 1
+        AND o.status = 1
+        AND r.status = 1
+
+        AND EXISTS (
+            SELECT 1
+            FROM sys_project_org po
+            WHERE po.project_id = p.project_id
+                AND po.org_id = p.org_id
+        )
+
+        AND (
+            p.post_type = 'BASIC'
+
+            OR (
+                p.post_type = 'MANAGEMENT'
+                AND EXISTS (
+                    SELECT 1
+                    FROM sys_user_management_authorization ma
+                    WHERE ma.user_id = p.user_id
+                        AND ma.status = 1
+                )
+            )
+        )
+
+    </select>
+
+
+</mapper>
