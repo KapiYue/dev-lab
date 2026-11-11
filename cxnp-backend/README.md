@@ -28,6 +28,22 @@ current-task.md             内部当前任务
 1. 准备 Java 17、Maven 和 MySQL 8。
 2. 创建 `cxnp` 数据库，并按需执行 `database/` 下的脚本。
 3. 通过环境变量配置数据库连接：`DB_URL`、`DB_USERNAME`、`DB_PASSWORD`。
+
+### 本地启动（macOS + Docker）
+
+Cursor 或终端重启后，在项目根目录执行：
+
+```bash
+./scripts/dev.sh
+```
+
+脚本会启动已有的 `cxnp-mysql` 和 `cxnp-redis` 容器，自动读取 MySQL 容器自己的密码到当前进程环境，并使用 Java 17、`dev` Profile 启动 Spring Boot。密码不会写入脚本、日志或 Git。
+
+运行数据库测试：
+
+```bash
+./scripts/test.sh UserRoleServiceTest
+```
 4. 执行：
 
    ```bash
