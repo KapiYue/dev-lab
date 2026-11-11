@@ -79,5 +79,83 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+-- 创建组织表 sys_org
+USE cxnp;
+
+CREATE TABLE IF NOT EXISTS sys_org (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    org_name VARCHAR(100) NOT NULL,
+
+    parent_id BIGINT DEFAULT NULL,
+
+    org_type VARCHAR(30) NOT NULL,
+
+    status TINYINT NOT NULL DEFAULT 1,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    KEY idx_parent_id (parent_id),
+
+    KEY idx_org_type (org_type),
+
+    KEY idx_org_status (status),
+
+    CONSTRAINT fk_org_parent
+        FOREIGN KEY (parent_id)
+        REFERENCES sys_org(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 创建角色数据范围表 sys_role_data_scope
+CREATE TABLE IF NOT EXISTS sys_role_data_scope (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    role_id BIGINT NOT NULL,
+
+    scope_type VARCHAR(30) NOT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_role_id (role_id),
+
+    CONSTRAINT fk_data_scope_role
+        FOREIGN KEY (role_id)
+        REFERENCES sys_role(id),
+
+    CONSTRAINT chk_scope_type
+        CHECK (scope_type IN (
+            'ALL',
+            'ORG_AND_CHILD',
+            'CUSTOM',
+            'SELF'
+        ))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 创建指定组织关联表 sys_role_scope_org
+CREATE TABLE IF NOT EXISTS sys_role_scope_org (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    role_id BIGINT NOT NULL,
+
+    org_id BIGINT NOT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_role_org (role_id, org_id),
+
+    KEY idx_org_id (org_id),
+
+    CONSTRAINT fk_scope_org_role
+        FOREIGN KEY (role_id)
+        REFERENCES sys_role(id),
+
+    CONSTRAINT fk_scope_org_org
+        FOREIGN KEY (org_id)
+        REFERENCES sys_org(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 
