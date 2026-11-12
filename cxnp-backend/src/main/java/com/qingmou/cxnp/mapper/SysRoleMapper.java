@@ -15,6 +15,9 @@ public interface SysRoleMapper {
     // 根据角色编码查询角色
     SysRole selectByRoleCode(@Param("roleCode") String roleCode);
 
+    // 根据角色 ID 查询角色
+    SysRole selectById(@Param("roleId") Long roleId);
+
     // 根据用户 ID 查询该用户拥有的角色
     List<SysRole> selectByUserId(@Param("userId") Long userId);
 }

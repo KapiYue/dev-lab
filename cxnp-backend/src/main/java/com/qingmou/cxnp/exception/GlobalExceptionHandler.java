@@ -70,4 +70,30 @@ public class GlobalExceptionHandler {
                         "无功能权限"
                 ));
     }
+
+    // 5. 功能权限已通过，但没有可访问的业务数据范围：HTTP 403
+    @ExceptionHandler(DataScopeDeniedException.class)
+    public ResponseEntity<Result<Void>> handleDataScopeDeniedException(
+            DataScopeDeniedException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(Result.<Void>error(
+                        403,
+                        "无数据范围"
+                ));
+    }
+
+    // 6. Service 层的防御性参数校验：HTTP 400
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Result<Void>> handleIllegalArgumentException(
+            IllegalArgumentException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Result.<Void>error(
+                        400,
+                        ex.getMessage()
+                ));
+    }
 }

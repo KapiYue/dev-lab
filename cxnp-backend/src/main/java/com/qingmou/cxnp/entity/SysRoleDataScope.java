@@ -1,14 +1,14 @@
 
 package com.qingmou.cxnp.entity;
 
-import com.qingmou.cxnp.enums.DataScopeType;
+import com.qingmou.cxnp.enums.RoleDataScopeType;
 import java.time.LocalDateTime;
 
 public class SysRoleDataScope {
 
     private Long id;
     private Long roleId;
-    private DataScopeType scopeType;
+    private RoleDataScopeType scopeType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -28,11 +28,11 @@ public class SysRoleDataScope {
         this.roleId = roleId;
     }
 
-    public DataScopeType getScopeType() {
+    public RoleDataScopeType getScopeType() {
         return scopeType;
     }
 
-    public void setScopeType(DataScopeType scopeType) {
+    public void setScopeType(RoleDataScopeType scopeType) {
         this.scopeType = scopeType;
     }
 

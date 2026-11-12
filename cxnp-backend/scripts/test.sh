@@ -23,8 +23,21 @@ fi
 
 export JAVA_HOME="$JAVA_HOME_17"
 export PATH="$JAVA_HOME/bin:$PATH"
+export SPRING_PROFILES_ACTIVE="test"
 export DB_USERNAME="${DB_USERNAME:-root}"
 export DB_PASSWORD="$MYSQL_ROOT_PASSWORD"
+export DB_URL="${TEST_DB_URL:-jdbc:mysql://127.0.0.1:3306/cxnp_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&connectTimeout=3000&socketTimeout=5000&sessionVariables=lock_wait_timeout=5,innodb_lock_wait_timeout=5}"
+
+if [[ ! "$DB_URL" =~ ^jdbc:mysql://[^/?]+(:[0-9]+)?/cxnp_test(\?.*)?$ ]]; then
+  echo "测试数据库 URL 必须指向 cxnp_test，拒绝执行：$DB_URL" >&2
+  exit 1
+fi
+
+if ! docker exec cxnp-mysql sh -lc 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '\''cxnp_test'\''"' \
+  | grep -qx 'cxnp_test'; then
+  echo "测试数据库 cxnp_test 不存在；为保护开发数据库，拒绝执行测试。" >&2
+  exit 1
+fi
 
 TEST_CLASS="${1:-UserRoleServiceTest}"
-exec mvn "-Dtest=$TEST_CLASS" test
+exec ./mvnw "-Dtest=$TEST_CLASS" test

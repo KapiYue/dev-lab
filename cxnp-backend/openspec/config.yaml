@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  Language: Chinese
+  All OpenSpec artifacts must be written in Chinese. Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Project: CXNP Backend is a Java 17, Spring Boot 3.3.5, MyBatis XML, MySQL 8 single Maven monolith. Its primary modules are party, rbac, organization, common, and config.
+  Engineering rules: Controllers validate and wrap responses but never call Mappers directly. Services own business rules, transactions, and data-permission secondary checks. Complex SQL belongs in MyBatis XML. Permission keys use the permissionKey form such as party:member:list. Data permission must be derived from the authenticated user's role configuration, never from a client-provided organization or branch scope.
+  SQL rule: Place all newly created initialization, test initialization, and test cleanup scripts in sql/. Preserve existing database/ files unless a separately approved change explicitly migrates them.
+  Documentation rule: AGENTS.md holds durable project rules. current-task.md holds only the current active task and manual approval state. openspec/changes/ holds the plan for one unarchived change; openspec/specs/ holds accepted stable business behavior.
+  Scope rule: Use a full OpenSpec change for cross-layer or cross-module work, RBAC/authentication/data permission, database migrations or multi-table writes, API behavior changes, and work requiring multiple acceptance scenarios. Small isolated repairs may skip OpenSpec but still need a verifiable completion standard.
+
+rules:
+  proposal:
+    - State scope and non-goals clearly; do not describe implementation details.
+    - Declare every new or modified business capability, or use skip_specs only for tooling, documentation, or pure refactoring changes with no runtime behavior change.
+  specs:
+    - Express externally observable business behavior as requirements and scenarios, including permission and data-scope denial behavior when applicable.
+  design:
+    - Record data model, transaction, security, compatibility, and rollback decisions when the change affects them.
+    - Do not use design.md to silently expand the user-approved scope.
+  tasks:
+    - Make every tracked task independently verifiable and small enough for one implementation session.
+    - Include the relevant automated or manual verification in each task.
+    - Keep task order aligned with dependency order and do not mark a task complete until its stated verification succeeds.
+
+operations:
+  apply:
+    guidance:
+      - Before implementation, show the selected change, the single task to be performed, and the remaining task count.
+      - Execute exactly one unchecked task per user confirmation. After its implementation and verification, mark only that task complete, report the result, and stop.
+      - Do not begin the next task until the user explicitly confirms continuation.
+      - If scope, requirements, design, or acceptance criteria change, pause implementation; update the relevant artifacts and obtain a new user confirmation before continuing.
+      - Treat a failed or incomplete verification as a blocker; do not mark the task complete or proceed.
+  archive:
+    guidance:
+      - Confirm all tracked tasks are complete and their required verifications have passed.
+      - Do not sync specifications or archive until the user explicitly confirms acceptance and explicitly permits archive.
+      - Report the archived change, synchronized specifications if any, and the resulting current-task handoff.

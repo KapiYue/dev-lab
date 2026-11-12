@@ -2,9 +2,12 @@
 package com.qingmou.cxnp;
 
 import com.qingmou.cxnp.entity.PartyMember;
+import com.qingmou.cxnp.exception.DataScopeDeniedException;
 import com.qingmou.cxnp.mapper.PartyMemberMapper;
 import com.qingmou.cxnp.service.PermissionService;
+import com.qingmou.cxnp.service.RoleDataScopeService;
 import com.qingmou.cxnp.service.impl.PartyMemberServiceImpl;
+import com.qingmou.cxnp.vo.RoleDataScopeResultVO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,9 @@ class PartyMemberServiceTest {
     @Mock
     private PermissionService permissionService;
 
+    @Mock
+    private RoleDataScopeService roleDataScopeService;
+
     private PartyMemberServiceImpl partyMemberService;
 
     @BeforeEach
@@ -32,7 +38,8 @@ class PartyMemberServiceTest {
 
         partyMemberService = new PartyMemberServiceImpl(
                 partyMemberMapper,
-                permissionService
+                permissionService,
+                roleDataScopeService
         );
     }
 
@@ -40,7 +47,11 @@ class PartyMemberServiceTest {
     @Test
     void testListWithPermission() {
 
-        when(partyMemberMapper.selectAll())
+        RoleDataScopeResultVO dataScope = allScope();
+        when(roleDataScopeService.getCurrentUserAccessibleScope("party:member:list"))
+                .thenReturn(dataScope);
+        when(partyMemberMapper.selectByDataScope(
+                dataScope.all(), dataScope.includeSelf(), dataScope.userId(), dataScope.orgIds()))
                 .thenReturn(List.of(new PartyMember()));
 
         List<PartyMember> result =
@@ -54,7 +65,8 @@ class PartyMemberServiceTest {
         );
 
         // 验证数据库查询已经执行
-        verify(partyMemberMapper).selectAll();
+        verify(partyMemberMapper).selectByDataScope(
+                dataScope.all(), dataScope.includeSelf(), dataScope.userId(), dataScope.orgIds());
     }
 
     // 2. 无列表权限：禁止查询
@@ -84,6 +96,7 @@ class PartyMemberServiceTest {
 
         // 核心：无权限时绝对不能执行党员数据查询
         verifyNoInteractions(partyMemberMapper);
+        verifyNoInteractions(roleDataScopeService);
     }
 
     // 3. 有详情权限：允许查询
@@ -95,7 +108,12 @@ class PartyMemberServiceTest {
         PartyMember member = new PartyMember();
         member.setId(memberId);
 
-        when(partyMemberMapper.selectById(memberId))
+        RoleDataScopeResultVO dataScope = allScope();
+        when(roleDataScopeService.getCurrentUserAccessibleScope("party:member:detail"))
+                .thenReturn(dataScope);
+        when(partyMemberMapper.selectByIdWithinDataScope(
+                memberId,
+                dataScope.all(), dataScope.includeSelf(), dataScope.userId(), dataScope.orgIds()))
                 .thenReturn(member);
 
         PartyMember result =
@@ -115,7 +133,9 @@ class PartyMemberServiceTest {
         );
 
         // 确认执行详情查询
-        verify(partyMemberMapper).selectById(memberId);
+        verify(partyMemberMapper).selectByIdWithinDataScope(
+                memberId,
+                dataScope.all(), dataScope.includeSelf(), dataScope.userId(), dataScope.orgIds());
     }
 
     // 4. 无详情权限：禁止查询
@@ -147,8 +167,34 @@ class PartyMemberServiceTest {
 
         // 核心验证：无权限时不允许查询党员数据
         verifyNoInteractions(partyMemberMapper);
+        verifyNoInteractions(roleDataScopeService);
     }
 
+    // 5. 有功能权限但无数据范围：禁止查询
+    @Test
+    void testListWithoutDataScope() {
 
+        doThrow(new DataScopeDeniedException("当前用户没有有效数据范围"))
+                .when(roleDataScopeService)
+                .getCurrentUserAccessibleScope("party:member:list");
+
+        assertThrows(
+                DataScopeDeniedException.class,
+                () -> partyMemberService.getAllPartyMembers()
+        );
+
+        verify(permissionService).checkCurrentUserPermission("party:member:list");
+        verifyNoInteractions(partyMemberMapper);
+    }
+
+    private RoleDataScopeResultVO allScope() {
+        return new RoleDataScopeResultVO(
+                1L,
+                "party:member:list",
+                true,
+                false,
+                java.util.Set.of()
+        );
+    }
 
 }

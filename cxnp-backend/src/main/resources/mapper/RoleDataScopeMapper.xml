@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.qingmou.cxnp.mapper.RoleDataScopeMapper">
+
+    <!--
+        仅保留既属于当前用户、又授予当前功能权限的启用角色。
+        这避免无关角色的 ALL/CUSTOM 范围扩大党员业务访问权。
+    -->
+    <select id="selectEffectiveScopesByUserIdAndPermissionKey"
+            resultType="com.qingmou.cxnp.entity.SysRoleDataScope">
+        SELECT DISTINCT
+            ds.id,
+            ds.role_id,
+            ds.scope_type,
+            ds.created_at,
+            ds.updated_at
+        FROM sys_user u
+        INNER JOIN sys_user_role ur
+            ON ur.user_id = u.id
+        INNER JOIN sys_role r
+            ON r.id = ur.role_id
+        INNER JOIN sys_role_permission rp
+            ON rp.role_id = r.id
+        INNER JOIN sys_permission p
+            ON p.id = rp.permission_id
+        INNER JOIN sys_role_data_scope ds
+            ON ds.role_id = r.id
+        WHERE u.id = #{userId}
+          AND u.status = 1
+          AND r.status = 1
+          AND p.permission_code = #{permissionKey}
+    </select>
+
+    <select id="selectActiveOrgIdsByRoleId" resultType="java.lang.Long">
+        SELECT rso.org_id
+        FROM sys_role_scope_org rso
+        INNER JOIN sys_org o
+            ON o.id = rso.org_id
+        WHERE rso.role_id = #{roleId}
+          AND o.status = 1
+    </select>
+
+    <select id="selectActiveOrgAndChildren"
+            resultType="com.qingmou.cxnp.entity.SysOrg">
+        WITH RECURSIVE org_tree AS (
+            SELECT
+                id,
+                org_name,
+                parent_id,
+                org_type,
+                status,
+                created_at
+            FROM sys_org
+            WHERE id = #{orgId}
+              AND status = 1
+
+            UNION ALL
+
+            SELECT
+                child.id,
+                child.org_name,
+                child.parent_id,
+                child.org_type,
+                child.status,
+                child.created_at
+            FROM sys_org child
+            INNER JOIN org_tree parent
+                ON child.parent_id = parent.id
+            WHERE child.status = 1
+        )
+        SELECT
+            id,
+            org_name,
+            parent_id,
+            org_type,
+            status,
+            created_at
+        FROM org_tree
+    </select>
+
+</mapper>

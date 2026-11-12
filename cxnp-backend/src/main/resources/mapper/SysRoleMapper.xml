@@ -30,6 +30,18 @@
         WHERE role_code = #{roleCode}
     </select>
 
+    <select id="selectById"
+            resultType="com.qingmou.cxnp.entity.SysRole">
+        SELECT
+            id,
+            role_code,
+            role_name,
+            status,
+            created_at
+        FROM sys_role
+        WHERE id = #{roleId}
+    </select>
+
     <!-- 3. 根据用户 ID 查询角色 -->
     <select id="selectByUserId"
             resultType="com.qingmou.cxnp.entity.SysRole">

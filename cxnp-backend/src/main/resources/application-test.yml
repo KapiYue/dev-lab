@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    # Only the test runner may override this, and TestDatabaseGuard verifies the
+    # catalog again after the connection has been opened.
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/cxnp_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&connectTimeout=3000&socketTimeout=5000&sessionVariables=lock_wait_timeout=5,innodb_lock_wait_timeout=5}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 5000
+      validation-timeout: 3000
+      initialization-fail-timeout: 5000
+
+  jdbc:
+    template:
+      query-timeout: 5s
+
+  transaction:
+    default-timeout: 10s
+
+logging:
+  level:
+    com.qingmou.cxnp: INFO
+    org.mybatis: INFO

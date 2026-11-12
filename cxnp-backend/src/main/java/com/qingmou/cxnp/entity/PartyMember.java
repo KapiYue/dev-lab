@@ -1,5 +1,6 @@
 package com.qingmou.cxnp.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -13,6 +14,8 @@ public class PartyMember {
     private String phone;
     private LocalDate joinDate;
     private String partyBranch;
+    private Long orgId;
+    private Long userId;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -61,6 +64,24 @@ public class PartyMember {
 
     public void setPartyBranch(String partyBranch) {
         this.partyBranch = partyBranch;
+    }
+
+    public Long getOrgId() {
+        return orgId;
+    }
+
+    public void setOrgId(Long orgId) {
+        this.orgId = orgId;
+    }
+
+    /** 系统账号关联仅供服务层数据权限判断，不对外暴露。 */
+    @JsonIgnore
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public LocalDateTime getCreatedAt() {

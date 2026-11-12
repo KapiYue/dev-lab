@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.qingmou.cxnp.mapper.RoleDataScopeConfigMapper">
+
+    <select id="selectScopeByRoleId"
+            resultType="com.qingmou.cxnp.entity.SysRoleDataScope">
+        SELECT id, role_id, scope_type, created_at, updated_at
+        FROM sys_role_data_scope
+        WHERE role_id = #{roleId}
+    </select>
+
+    <insert id="insertScope">
+        INSERT INTO sys_role_data_scope (role_id, scope_type)
+        VALUES (#{roleId}, #{scopeType})
+    </insert>
+
+    <update id="updateScopeType">
+        UPDATE sys_role_data_scope
+        SET scope_type = #{scopeType}
+        WHERE role_id = #{roleId}
+    </update>
+
+    <delete id="deleteOrgBindingsByRoleId">
+        DELETE FROM sys_role_scope_org
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <select id="countOrgBinding" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_role_scope_org
+        WHERE role_id = #{roleId}
+          AND org_id = #{orgId}
+    </select>
+
+    <insert id="insertOrgBinding">
+        INSERT INTO sys_role_scope_org (role_id, org_id)
+        VALUES (#{roleId}, #{orgId})
+    </insert>
+
+    <select id="selectActiveOrgIdsByIds" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_org
+        WHERE status = 1
+          AND id IN
+          <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+              #{orgId}
+          </foreach>
+    </select>
+
+</mapper>

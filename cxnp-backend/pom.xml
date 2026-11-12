@@ -17,7 +17,8 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
-        <java.version>17</java.version>
+    <java.version>17</java.version>
+    <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -79,12 +80,43 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+
+<build>
+    <plugins>
+
+        <!-- 解析 Mockito 依赖，获取 mockito-core.jar 的实际路径 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>properties</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+
+        <!-- 显式加载 Mockito Java Agent，避免运行时动态附加 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+                <argLine>@{argLine} -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
+                <parallel>none</parallel>
+                <forkCount>1</forkCount>
+                <reuseForks>true</reuseForks>
+            </configuration>
+        </plugin>
+
+        <!-- Spring Boot -->
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+
+    </plugins>
+</build>
+
 </project>
