@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import jakarta.validation.ConstraintViolationException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -23,6 +25,15 @@ public class GlobalExceptionHandler {
                         400,
                         "ID 格式参数错误"
                 ));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Result<Void>> handleConstraintViolationException(
+            ConstraintViolationException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Result.<Void>error(400, "用户 ID 必须大于 0"));
     }
 
     // 2. 请求参数校验失败：HTTP 400
@@ -45,7 +56,20 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 3. 登录认证异常：HTTP 401
+    // 3. 登录失败保护：HTTP 429
+    @ExceptionHandler(LoginTemporarilyLockedException.class)
+    public ResponseEntity<Result<Void>> handleLoginTemporarilyLockedException(
+            LoginTemporarilyLockedException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Result.<Void>error(
+                        429,
+                        ex.getMessage()
+                ));
+    }
+
+    // 4. 登录认证异常：HTTP 401
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Result<Void>> handleAuthenticationException(
             AuthenticationException ex
@@ -58,7 +82,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 4. 功能权限不足：HTTP 403
+    // 5. 功能权限不足：HTTP 403
     @ExceptionHandler(PermissionDeniedException.class)
     public ResponseEntity<Result<Void>> handlePermissionDeniedException(
             PermissionDeniedException ex
@@ -71,7 +95,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 5. 功能权限已通过，但没有可访问的业务数据范围：HTTP 403
+    // 6. 功能权限已通过，但没有可访问的业务数据范围：HTTP 403
     @ExceptionHandler(DataScopeDeniedException.class)
     public ResponseEntity<Result<Void>> handleDataScopeDeniedException(
             DataScopeDeniedException ex
@@ -84,7 +108,7 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 6. Service 层的防御性参数校验：HTTP 400
+    // 7. Service 层的防御性参数校验：HTTP 400
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Result<Void>> handleIllegalArgumentException(
             IllegalArgumentException ex
@@ -95,5 +119,14 @@ public class GlobalExceptionHandler {
                         400,
                         ex.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Result<Void>> handleResourceNotFoundException(
+            ResourceNotFoundException ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Result.<Void>error(404, ex.getMessage()));
     }
 }

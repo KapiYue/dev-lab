@@ -131,7 +131,9 @@ spring:
       timeout: 3000ms
 ```
 
-注意：这只是完成 Redis 连接配置，业务代码仍需要通过 `RedisTemplate` 等组件实际读写 Redis。
+注意：Redis 是认证会话的必要运行时依赖，不只是可选缓存。服务使用它保存 Bearer 会话、用户会话索引、登录失败计数和临时锁定状态；Redis 不可用时，登录和受保护请求会失败关闭。
+
+认证会话策略如下：会话初始有效期为两小时，临近过期（剩余不超过 30 分钟）的受保护请求会续期；同一账号允许多端并存。连续 5 次登录失败会锁定对应登录标识 15 分钟，成功登录会清除失败及锁定状态。
 
 ### 5. 启动并验证
 
@@ -241,7 +243,7 @@ docker stop cxnp-redis
 | 查看 MySQL 日志 | `docker logs --tail 50 cxnp-mysql` |
 | 查看 Redis 日志 | `docker logs --tail 50 cxnp-redis` |
 | 后端数据库连接失败 | 检查 MySQL 状态及 `DB_PASSWORD` |
-| Redis 连接失败 | 检查 Redis 容器、6379 端口及 `application.yml` |
+| Redis 连接失败 | 检查 Redis 容器、6379 端口及 `application.yml`；认证登录和受保护接口会因此失败关闭 |
 | 8080 端口被占用 | `lsof -nP -iTCP:8080 -sTCP:LISTEN` |
 
 ---
@@ -254,7 +256,7 @@ docker stop cxnp-redis
 4. MySQL 使用 `3306` 端口，Redis 使用 `6379` 端口。
 5. 本地 Docker MySQL 与腾讯云 MySQL 是独立环境，操作前确认连接目标。
 6. 不要随意删除 MySQL、Redis 容器和数据卷。
-7. Redis 当前仅供本地学习，不要直接暴露到公网。
+7. Redis 当前仅供本地学习，不要直接暴露到公网；其中保存认证会话和登录失败保护状态。
 8. Spring Boot 的 `application.yml` 只保留一个顶层 `spring` 节点。
 
 **核心流程：Docker Desktop → MySQL + Redis → Spring Boot → API 验证。**

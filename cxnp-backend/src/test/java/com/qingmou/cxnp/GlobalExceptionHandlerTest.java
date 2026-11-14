@@ -3,6 +3,7 @@ package com.qingmou.cxnp;
 import com.qingmou.cxnp.common.Result;
 import com.qingmou.cxnp.exception.DataScopeDeniedException;
 import com.qingmou.cxnp.exception.GlobalExceptionHandler;
+import com.qingmou.cxnp.exception.LoginTemporarilyLockedException;
 import com.qingmou.cxnp.exception.PermissionDeniedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -39,6 +40,17 @@ class GlobalExceptionHandlerTest {
                 );
 
         assertError(response, HttpStatus.BAD_REQUEST, 400, "党员 ID 必须大于 0");
+    }
+
+    @Test
+    void convertsTemporaryLoginLockToTooManyRequestsJson() {
+        ResponseEntity<Result<Void>> response = handler
+                .handleLoginTemporarilyLockedException(
+                        new LoginTemporarilyLockedException()
+                );
+
+        assertError(response, HttpStatus.TOO_MANY_REQUESTS, 429,
+                "用户名或密码错误");
     }
 
     private void assertError(
